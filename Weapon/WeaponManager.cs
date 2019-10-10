@@ -9,6 +9,7 @@ public class WeaponManager : Bolt.EntityBehaviour<IPlayer>
 
     public GameObject WeaponStruct;
     public GameObject ThrowStruct;
+    public GameObject MagStruct;
 
     [SerializeField]
     private int WeaponsAvailable;
@@ -126,5 +127,7 @@ public class WeaponManager : Bolt.EntityBehaviour<IPlayer>
                 CurrentWeaponNumber = 0;
             }
         }
+
+        shooting.TimerConstant = CurrentWeapon.ResetTime * 2;
     }   
 }

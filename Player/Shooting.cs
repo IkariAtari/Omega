@@ -19,8 +19,7 @@ public class Shooting : Bolt.EntityEventListener<IPlayer>
 
     public Weapon CurrentWeapon;
 
-    [SerializeField]
-    private int TimerConstant;
+    public int TimerConstant;
 
     public bool CanShoot;
 
@@ -58,6 +57,11 @@ public class Shooting : Bolt.EntityEventListener<IPlayer>
                     {
                         CanShoot = true;
                         TimerConstant = CurrentWeapon.ResetTime * 2;
+
+                        if(CurrentWeapon.Name == "RPG")
+                        {
+                            weaponManager.CurrentWeapon.transform.GetChild(1).gameObject.SetActive(true);
+                        }
                     }
                 }
 
@@ -110,7 +114,7 @@ public class Shooting : Bolt.EntityEventListener<IPlayer>
                             {
                                 if (CanShoot == true)
                                 {
-                                    ShootProjectile(CurrentWeapon.Projectile);
+                                    ShootProjectile();
                                     CanShoot = false;
                                 }
                             }
@@ -221,34 +225,32 @@ public class Shooting : Bolt.EntityEventListener<IPlayer>
                     Transform EjectionPort = weaponGFX.transform.GetChild(1);
                     EjectShell();
                 }
-                                   
-                if (isADS == true)
-                {
-                    Cam.transform.Rotate(new Vector3(-Random.Range(CurrentWeapon.minRecoilADS, CurrentWeapon.maxRecoilADS), Random.Range(-CurrentWeapon.RecoilHor, CurrentWeapon.RecoilHor), 0));
-                }
-                else
-                {
-                    Cam.transform.Rotate(new Vector3(-Random.Range(CurrentWeapon.minRecoil, CurrentWeapon.maxRecoil), Random.Range(-CurrentWeapon.RecoilHor, CurrentWeapon.RecoilHor), 0));
-                }
+
+                Recoil();
 
                 CurrentWeapon.AmmunitionInMagazine -= 1;
 
-                GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
-                foreach (GameObject player in players)
-                {
-                    var EventSound = ShootSound.Create(player.GetComponent<BoltEntity>());
-                    EventSound.WeaponID = weaponManager.CurrentWeaponNumber;
-                    EventSound.Shooter = entity;
-                    EventSound.Send();
-                }
-
+                SendSoundEvent();
+           
                 weaponManager.WeaponAudioSource.clip = weaponManager.CurrentWeapon.ShootSound;
                 weaponManager.WeaponAudioSource.Play();
             }
         }  
     }
 
-    private void ShootProjectile(GameObject Projectile)
+    private void SendSoundEvent()
+    {
+        GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
+        foreach (GameObject player in players)
+        {
+            var EventSound = ShootSound.Create(player.GetComponent<BoltEntity>());
+            EventSound.WeaponID = weaponManager.CurrentWeaponNumber;
+            EventSound.Shooter = entity;
+            EventSound.Send();
+        }
+    }
+
+    private void ShootProjectile()
     {
         if (entity.IsOwner)
         {
@@ -257,15 +259,45 @@ public class Shooting : Bolt.EntityEventListener<IPlayer>
             {
                 case "Frag":
                     _instance = BoltNetwork.Instantiate(BoltPrefabs.FragThrowed, weaponManager.ThrowStruct.transform.position, weaponManager.ThrowStruct.transform.rotation);
+                    _instance.GetComponent<ThrowableExplosive>().Throwed = entity;
                     break;
                 case "FlashBang":
                     _instance = BoltNetwork.Instantiate(BoltPrefabs.FlashBangThrowed, weaponManager.ThrowStruct.transform.position, weaponManager.ThrowStruct.transform.rotation);
+                    _instance.GetComponent<ThrowableExplosive>().Throwed = entity;
+                    break;
+                case "Smoke":
+                    _instance = BoltNetwork.Instantiate(BoltPrefabs.SmokeGrenadeThrowed, weaponManager.ThrowStruct.transform.position, weaponManager.ThrowStruct.transform.rotation);
+                    _instance.GetComponent<ThrowableExplosive>().Throwed = entity;
+                    break;
+                case "RPG":
+                    _instance = BoltNetwork.Instantiate(BoltPrefabs.Rocket, weaponManager.CurrentWeapon.transform.GetChild(1).position, weaponManager.CurrentWeapon.transform.GetChild(1).rotation);
+                    weaponManager.CurrentWeapon.transform.GetChild(1).gameObject.SetActive(false);
+                    _instance.GetComponent<Rocket>().Throwed = entity;
                     break;
             }          
-            _instance.GetComponent<ThrowableExplosive>().Throwed = entity;
+          
             CurrentWeapon.AmmunitionCount -= 1;
+
+            Recoil();
+            SendSoundEvent();
+
+            weaponManager.WeaponAudioSource.clip = weaponManager.CurrentWeapon.ShootSound;
+            weaponManager.WeaponAudioSource.Play();
         }
     }
+
+    private void Recoil()
+    {
+        if (isADS == true)
+        {
+            Cam.transform.Rotate(new Vector3(-Random.Range(CurrentWeapon.minRecoilADS, CurrentWeapon.maxRecoilADS), Random.Range(-CurrentWeapon.RecoilHor, CurrentWeapon.RecoilHor), 0));
+        }
+        else
+        {
+            Cam.transform.Rotate(new Vector3(-Random.Range(CurrentWeapon.minRecoil, CurrentWeapon.maxRecoil), Random.Range(-CurrentWeapon.RecoilHor, CurrentWeapon.RecoilHor), 0));
+        }
+    }
+  
     private void SendEvent(Transform Hit)
     {
         BoltEntity enemyEntity = Hit.transform.GetComponent<BoltEntity>();
@@ -276,42 +308,88 @@ public class Shooting : Bolt.EntityEventListener<IPlayer>
     }
 
     private IEnumerator Reload()
-    { 
+    {
         IsReloading = true;
 
-        CurrentWeapon.Animator.SetBool("Reload", true);
-
-        yield return new WaitForSeconds(CurrentWeapon.ReloadTime);
-
-        if (CurrentWeapon.AmmunitionCount > 0)
+        if (CurrentWeapon.Type == "shotgun")
         {
-            if(CurrentWeapon.AmmunitionInMagazine < CurrentWeapon.MagazineCapacity)
+            int RepeatFor = CurrentWeapon.MagazineCapacity - CurrentWeapon.AmmunitionInMagazine;
+
+            CurrentWeapon.Animator.SetInteger("RepeatFor", RepeatFor);
+            CurrentWeapon.Animator.SetTrigger("Reload");
+
+            yield return new WaitForSeconds(0.5f);
+
+            for (int i = 0; i < RepeatFor; i++)
             {
-                if(CurrentWeapon.AmmunitionCount < CurrentWeapon.MagazineCapacity)
-                {
-                    CurrentWeapon.AmmunitionCount = 0;
-                    CurrentWeapon.AmmunitionInMagazine = CurrentWeapon.AmmunitionCount;
-                }
-                else
-                {
-                    CurrentWeapon.AmmunitionCount -= (CurrentWeapon.MagazineCapacity - CurrentWeapon.AmmunitionInMagazine);
-                    CurrentWeapon.AmmunitionInMagazine = CurrentWeapon.MagazineCapacity;
-                }              
+                yield return new WaitForSeconds(0.5f);
+                CurrentWeapon.Animator.SetInteger("RepeatFor", RepeatFor - (i + 1));
+                CurrentWeapon.AmmunitionInMagazine += 1;
             }
-            
-            HasToReload = false;
-        }
 
-        if(CurrentWeapon.AmmunitionCount < 0)
+
+            IsReloading = false;
+        }
+        else
         {
-            CurrentWeapon.AmmunitionCount = 0;
+            CurrentWeapon.Animator.SetBool("Reload", true);
+            Vector3 MagFallPos = new Vector3(0, -0.7f, -0.5f);
+
+            switch (CurrentWeapon.Name)
+            {
+                case "R - 15":
+                    BoltNetwork.Instantiate(BoltPrefabs.R15_mag, weaponManager.MagStruct.transform.position, weaponManager.MagStruct.transform.rotation);
+                    break;
+                case "Pistol .45":
+                    BoltNetwork.Instantiate(BoltPrefabs.P45_mag, weaponManager.MagStruct.transform.position, weaponManager.MagStruct.transform.rotation);
+                    break;
+                case "Koltec":
+                    BoltNetwork.Instantiate(BoltPrefabs.Koltec_mag, weaponManager.MagStruct.transform.position, weaponManager.MagStruct.transform.rotation);
+                    break;
+                case "P - 95":
+                    BoltNetwork.Instantiate(BoltPrefabs.P95_mag, weaponManager.MagStruct.transform.position, weaponManager.MagStruct.transform.rotation);
+                    break;
+                case "KM11":
+                    BoltNetwork.Instantiate(BoltPrefabs.KM11_mag, weaponManager.MagStruct.transform.position, weaponManager.MagStruct.transform.rotation);
+                    break;
+                case "DMP45":
+                    BoltNetwork.Instantiate(BoltPrefabs.DMP45_mag, weaponManager.MagStruct.transform.position, weaponManager.MagStruct.transform.rotation);
+                    break;
+            }
+
+
+            yield return new WaitForSeconds(CurrentWeapon.ReloadTime);
+
+            if (CurrentWeapon.AmmunitionCount > 0)
+            {
+                if (CurrentWeapon.AmmunitionInMagazine < CurrentWeapon.MagazineCapacity)
+                {
+                    if (CurrentWeapon.AmmunitionCount < CurrentWeapon.MagazineCapacity)
+                    {
+                        CurrentWeapon.AmmunitionCount = 0;
+                        CurrentWeapon.AmmunitionInMagazine = CurrentWeapon.AmmunitionCount;
+                    }
+                    else
+                    {
+                        CurrentWeapon.AmmunitionCount -= (CurrentWeapon.MagazineCapacity - CurrentWeapon.AmmunitionInMagazine);
+                        CurrentWeapon.AmmunitionInMagazine = CurrentWeapon.MagazineCapacity;
+                    }
+                }
+
+                HasToReload = false;
+            }
+
+            if (CurrentWeapon.AmmunitionCount < 0)
+            {
+                CurrentWeapon.AmmunitionCount = 0;
+            }
+
+            CurrentWeapon.Animator.SetBool("Reload", false);
+
+            IsReloading = false;
+
+            yield break;
         }
-
-        CurrentWeapon.Animator.SetBool("Reload", false);
-
-        IsReloading = false;
-
-        yield break;
     }
 
     private void Aim(int State)

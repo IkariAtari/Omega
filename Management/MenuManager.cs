@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using System.Linq;
 
 public class MenuManager : Bolt.GlobalEventListener {
 
@@ -13,6 +14,9 @@ public class MenuManager : Bolt.GlobalEventListener {
 
     [SerializeField]
     private LoadoutManager loadoutManager;
+
+    [SerializeField]
+    private RankManager rankManager;
 
     [SerializeField]
     private InputField Username;
@@ -83,6 +87,21 @@ public class MenuManager : Bolt.GlobalEventListener {
     [SerializeField]
     private Text RecoilSecondary;
 
+    [SerializeField]
+    private GameObject NonLethal;
+
+    [SerializeField]
+    private Text UsernameText;
+
+    [SerializeField]
+    private Image RankImage;
+
+    [SerializeField]
+    private Text RankName;
+
+    [SerializeField]
+    private Text XP;
+
     private int CurrentLoadout;
 
     private void Start()
@@ -120,11 +139,13 @@ public class MenuManager : Bolt.GlobalEventListener {
         }
         else
         {
-            MessageHandler(www.downloadHandler.text);
+            string[] _outcomes = www.downloadHandler.text.Split(':');
 
-            if(www.downloadHandler.text == "success;")
+            MessageHandler(_outcomes[0]);
+
+            if (_outcomes[0] == "success")
             {
-                SuccessFullLogin();
+                SuccessFullLogin(_outcomes);
             }
         }
     }
@@ -173,13 +194,26 @@ public class MenuManager : Bolt.GlobalEventListener {
         }
     }
 
-    private void SuccessFullLogin()
+    private void SuccessFullLogin(string[] _outcomes)
     {
         Auth.CreateSession(Username.text);
+        Auth.Rank = Int32.Parse(_outcomes[1]);
+        Auth.XP = Int32.Parse(_outcomes[2]);
 
         LoginPanel.SetActive(false);
 
         MainMenuPanel.SetActive(true);
+
+        UsernameText.text = Auth.Name;
+        UpdateRank();
+    }
+
+    public void UpdateRank()
+    {
+       Rank[] _ranks = rankManager.CalculateRank(Auth.XP);
+       RankImage.sprite = _ranks[0].RankIcon;
+       RankName.text = _ranks[0].RankName;
+       XP.text = Auth.XP.ToString()+" xp";
     }
 
     public void SetLoadoutScreen(int _index)
@@ -227,18 +261,27 @@ public class MenuManager : Bolt.GlobalEventListener {
                 PrimaryWeapons.SetActive(true);
                 SecondaryWeapons.SetActive(false);
                 Lethal.SetActive(false);
+                NonLethal.SetActive(false);
                 break;
 
             case "Secondary":
                 PrimaryWeapons.SetActive(false);
                 SecondaryWeapons.SetActive(true);
                 Lethal.SetActive(false);
+                NonLethal.SetActive(false);
                 break;
 
             case "Lethal":      
                 PrimaryWeapons.SetActive(false);
                 SecondaryWeapons.SetActive(false);
                 Lethal.SetActive(true);
+                NonLethal.SetActive(false);
+                break;
+            case "NonLethal":
+                PrimaryWeapons.SetActive(false);
+                SecondaryWeapons.SetActive(false);
+                Lethal.SetActive(false);
+                NonLethal.SetActive(true);
                 break;
         }
         

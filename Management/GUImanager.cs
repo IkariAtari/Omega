@@ -59,21 +59,16 @@ public class GUImanager : Bolt.EntityBehaviour<IPlayer> {
 
     public void Flashed()
     {
-        Debug.Log("HAI");
+        StartCoroutine(FlashFunction());
+    }
+
+    private IEnumerator FlashFunction()
+    {
         FlashedScreen.SetActive(true);
 
-        int Time = 30000;
+        yield return new WaitForSeconds(3);
 
-        while(Time > 0)
-        {
-            Time -= 1;
-            if(Time < 1)
-            {
-                Debug.Log("HAI2");
-                FlashedScreen.SetActive(false);
-                break;
-            }
-        }      
+        FlashedScreen.SetActive(false);
     }
 
     private void Update()

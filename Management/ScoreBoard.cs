@@ -10,10 +10,12 @@ public class ScoreBoard : Bolt.EntityEventListener
     private GameObject Row;
 
     private GameObject GameManager;
+    private GameObject PlayerManager;
 
     private void OnEnable()
     {      
         GameManager = GameObject.Find("GameManager");
+        PlayerManager = GameObject.Find("PlayerManager");
 
         Player[] players = GameManager.GetComponent<GameManager>().GetAllPlayers();
  
@@ -40,11 +42,15 @@ public class ScoreBoard : Bolt.EntityEventListener
                 Text Kills = _row.transform.GetChild(1).GetComponent<Text>();
                 Text Deaths = _row.transform.GetChild(2).GetComponent<Text>();
                 Text Score = _row.transform.GetChild(3).GetComponent<Text>();
+                Image Rank = _row.transform.GetChild(4).GetChild(0).GetComponent<Image>();
 
                 Name.text = pair.Key.state.Username;
                 Kills.text = pair.Key.state.Kills.ToString();
                 Deaths.text = pair.Key.state.Deaths.ToString();
                 Score.text = pair.Key.state.Score.ToString();
+                Rank[] _ranks = PlayerManager.GetComponent<RankManager>().CalculateRank(pair.Key.state.XP);
+                Rank.sprite = _ranks[0].RankIcon;
+
             }
         }
     }

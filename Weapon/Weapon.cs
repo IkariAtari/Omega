@@ -6,7 +6,6 @@ using UnityEngine;
 public class Weapon : Bolt.EntityBehaviour {
 
     // General
-    public int ID;
     public string Name;
     public GameObject WeaponGFX;
     public int Damage;
@@ -47,7 +46,8 @@ public class Weapon : Bolt.EntityBehaviour {
     public bool HasCrosshair;
     public bool HasMuzzleflash;
     public bool EjectsShell;
-    public GameObject Projectile;
 
     public AudioClip ShootSound;
+
+    public GameObject Magazine;
 }

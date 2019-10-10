@@ -47,6 +47,7 @@ public class Player : Bolt.EntityEventListener<IPlayer>
         else
         {
             state.Username = PlayerManager.GetComponent<PlayerAuth>().Name;
+            state.XP = PlayerManager.GetComponent<PlayerAuth>().XP;
             state.Kills = 0;
             state.Deaths = 0;
             state.Score = 0;
@@ -93,6 +94,8 @@ public class Player : Bolt.EntityEventListener<IPlayer>
     public override void OnEvent(ClaimKill evnt)
     {
         state.Kills += 1;
+        state.XP += 5;
+        PlayerManager.GetComponent<PlayerAuth>().XP += 5;
     }
 
     public override void OnEvent(PlayerFlashed evnt)

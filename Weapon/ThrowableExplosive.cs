@@ -72,6 +72,9 @@ public class ThrowableExplosive : Bolt.EntityBehaviour<IExplosive>
             case "flash":
                 BoltNetwork.Instantiate(BoltPrefabs.FXFlashBang, transform.position, Quaternion.identity);
                 break;
+            case "smoke":
+                BoltNetwork.Instantiate(BoltPrefabs.FXSmokeGrenade, transform.position, Quaternion.identity);
+                break;
         }    
         BoltNetwork.Destroy(gameObject);
     }

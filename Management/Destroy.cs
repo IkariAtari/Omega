@@ -11,7 +11,7 @@ public class Destroy : Bolt.EntityBehaviour
 
     private IEnumerator DestroySelf()
     {
-        yield return new WaitForSeconds(60);
+        yield return new WaitForSeconds(30);
 
         BoltNetwork.Destroy(gameObject);
     }

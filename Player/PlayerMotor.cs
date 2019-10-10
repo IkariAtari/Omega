@@ -28,10 +28,23 @@ public class PlayerMotor : Bolt.EntityBehaviour<IPlayer>
     private bool Jumped;
 
     [SerializeField]
+    private bool IsRunning;
+
+    [SerializeField]
+    private bool SetFootstep = true;
+
+    [SerializeField]
     private float LookSensitivity;
 
     [SerializeField]
     private bool IsGrounded;
+
+    private int FootstepsTimer = 15;
+
+    private int CurrentFootstepTime;
+
+    [SerializeField]
+    private AudioSource FootSteps;
 
     public override void Attached()
     {
@@ -49,11 +62,13 @@ public class PlayerMotor : Bolt.EntityBehaviour<IPlayer>
             if (Jumped == false)
             {
                 ActualSpeed = RunningSpeed;
+                IsRunning = true;
             }
         }
         else
         {
             ActualSpeed = WalkingSpeed;
+            IsRunning = false;
         }
 
         if (Input.GetKeyDown(KeyCode.Space) && Controller.isGrounded && Jumped == false)
@@ -76,6 +91,26 @@ public class PlayerMotor : Bolt.EntityBehaviour<IPlayer>
         else
         {
             GravitationalVelocity.y = -1f;
+        }
+
+        if(IsRunning == true)
+        {
+            if (SetFootstep == true)
+            {
+                FootSteps.Play();
+                SetFootstep = false;
+            }                        
+        }
+
+        if(SetFootstep == false)
+        {
+            CurrentFootstepTime--;
+
+            if(CurrentFootstepTime <= 0)
+            {
+                SetFootstep = true;
+                CurrentFootstepTime = FootstepsTimer;
+            }
         }
 
         float xMovement = Input.GetAxisRaw("Horizontal");
